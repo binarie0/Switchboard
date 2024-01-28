@@ -6,7 +6,7 @@
  
 ### Credits for [DriveTestUltra](https://github.com/binarie0/DriveTestUltra)        
  https://github.com/dfinke/ImportExcel [Dependency in order to develop graphs without having Excel natively installed]    
- https://github.com/ayavilevich/DiskSpdAuto [Majority of standard build]
+ https://github.com/ayavilevich/DiskSpdAuto [Majority of standard build]    
  binarie0 -> Majority of code compilation, graphics, output to excel and csv      
  EarthToFatt -> Code Restructuring, Graphics, Output to Word      
  
