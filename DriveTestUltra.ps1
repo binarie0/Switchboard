@@ -1,23 +1,61 @@
 ﻿param (
     [Parameter(Mandatory = $true)][string]$drive,
     [string]$batchId=(Get-Date -format "yyyy-MM-dd_hh-mm-ss"), # 'u' and 's' will have colons, which is bad for filenames
-    [string]$testSize='10M',
-    [int]$durationSec=5, # less than 5sec gave zero results
+    [string]$testSize='1M',
+    [int]$durationSec=3, # changed from 5 seconds - 3 works fine on modern hardware.
     [int]$warmupSec=0,
     [int]$cooldownSec=0,
-    [int]$restSec=5,
-    [string]$diskspd= $PSScriptRoot + "\DiskSpd\amd64\diskspd.exe"
+    #[int]$restSec=5,
+    [string]$diskspd= $PSScriptRoot + ".\diskspd.exe"
     # Used to be: 'C:\Users\holter\Downloads\DiskSpdAuto-master\DiskSpdAuto-master\DiskSpd\amd64\diskspd.exe'
 )
+
+$newname = Read-Host -Prompt "Barcode"
+#matts super cool export chart testing stuff
+Add-Type -Path (Join-Path $PSScriptRoot "Spire.XLS.dll")
+
+# Combine with the "Charts" folder
+$mainfolder = ([System.Environment]::GetFolderPath('MyDocuments'))
+$chartsFolder = Join-Path -Path $mainfolder -ChildPath "DTUCharts"
+
+
+# Check if the folder exists, and create it if not
+if (-not (Test-Path $chartsFolder -PathType Container)) {
+    New-Item -Path $chartsFolder -ItemType Directory
+}
 
 #install excel spreadsheet tool (cannot be run without admin permissions however, when compiled with ps2exe, admin perms will be required)
 
 #ImportExcel can be found here https://github.com/dfinke/ImportExcel
-if (!(Get-Module -ListAvailable -Name ImportExcel)) {
+# Check if ImportExcel module is installed, and install if not
+if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
+    Write-Host "ImportExcel module not found. Installing..."
     Install-Module -Name ImportExcel -Force -ErrorAction Stop
-} 
+} else {
+    Write-Host "ImportExcel module is already installed."
+}
+
+# Check if NuGet package provider is installed, and install if not
+if (-not (Get-PackageProvider -ListAvailable -Name NuGet -Force)) {
+    Write-Host "NuGet package provider not found. Installing..."
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop
+} else {
+    Write-Host "NuGet package provider is already installed."
+}
+
+# Check if the module is already installed
+if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
+    # Module not installed, proceed with the installation
+    Install-Module -Name PSWriteOffice -Force -Scope CurrentUser -AllowClobber
+    Write-Host "Module 'PSWriteOffice' has been installed."
+} else {
+    Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
+}
+
+
 #get new name of the disk (should be ctrl v from barcode scanner)
-$newname = Read-Host -Prompt "Barcode"
+
+$BDStandardName = "Default"
 ###### Rename drive to barcode number ######
 
 Set-Volume -DriveLetter $drive -NewFileSystemLabel $newname
@@ -101,9 +139,9 @@ function TotalTargetRead {
 
     # $t_rr=$tests |Where-Object {$_.'Test Name' -eq 'Random read'}
     # $v=$t_rr.ReadBytes/$t_rr.TestTimeSeconds/1024/1024
-   #  Add-Member -InputObject $o -MemberType noteproperty -Name 'Random Read 4KB (QD=1) [MB/s]' -Value $v
+    #  Add-Member -InputObject $o -MemberType noteproperty -Name 'Random Read 4KB (QD=1) [MB/s]' -Value $v
 
-   #  $t_rw=$tests |Where-Object {$_.'Test Name' -eq 'Random write'}
+    #  $t_rw=$tests |Where-Object {$_.'Test Name' -eq 'Random write'}
     # $v=$t_rw.WriteBytes/$t_rw.TestTimeSeconds/1024/1024
     # Add-Member -InputObject $o -MemberType noteproperty -Name 'Random Write 4KB (QD=1) [MB/s]' -Value $v
 
@@ -112,16 +150,27 @@ function TotalTargetRead {
     # Add-Member -InputObject $o -MemberType noteproperty -Name 'Random Read 4KB (QD=32) [MB/s]' -Value $v
 
     # $t_r2w=$tests |Where-Object {$_.'Test Name' -eq 'Random QD32 write'}
-   #  $v=$t_r2w.WriteBytes/$t_r2w.TestTimeSeconds/1024/1024
+    #  $v=$t_r2w.WriteBytes/$t_r2w.TestTimeSeconds/1024/1024
     # Add-Member -InputObject $o -MemberType noteproperty -Name 'Random Write 4KB (QD=32) [MB/s]' -Value $v
 
     return $o
 }
 
-
+$benchmarkContent = Get-Content -Raw ($PSScriptRoot + "\benchmark.tmp")
 # initialize test file
-# consider "fsutil file createnew <name of file> <size in bytes>" though can't control caching or content
-# best to do one per drive and not each test. also, had effect on "test duration" when was part of the test.
+$testFileParams = '{0}:\benchmark.tmp' -f $drive
+
+# Check if the file already exists, and if not, create it
+if (-not (Test-Path $testFileParams)) {
+    # Use the pre-loaded content if available, otherwise generate it
+    if ($null -ne $benchmarkContent) {
+        Set-Content -Path $testFileParams -Value $benchmarkContent
+    } else {
+        $params = ('{0} -d1 -S -Z1M -c{1}' -f $testFileParams, $testSize)
+        & $diskspd ($params -split ' ') > $xmlFile
+    }
+}
+
 $testFileParams='{0}:\benchmark.tmp' -f $drive
 $xmlFile=('{0}-Generation.xml' -f $batchId);
 $params=( ('-Rxml -d1 -S -Z1M -c{0}' -f $testSize) ,$testFileParams) -join ' '; # make sure to write with cache disabled, or else on slow systems this will exit with data still writing from cache to disk.
@@ -171,12 +220,9 @@ $testsSum = TotalTargetRead $tests
 
 # $testsSum 
 $date = Get-Date -Format "yyyy-MM-dd"
-
-$mainfolder = ([System.Environment]::GetFolderPath('MyDocuments'))
 $csvoutputPath = Join-Path -Path $mainfolder -ChildPath ('BD-{0}.csv' -f $date)
 $csv2outputPath = Join-Path -Path $mainfolder -ChildPath ('BD-{0}.csv' -f $newname)
 $exceloutputPath = Join-Path -Path $mainfolder -ChildPath ('BD.xlsx')
-
 #set chart definition
 $chart = New-ExcelChartDefinition -Title $newname -YMaxValue 100 -XAxisTitleText "Read & Write" -YAxisTitleText "Transfer Rate [MB/s]" -YRange 'SequentialRead','SequentialWrite' -ChartType "BarClustered" -LegendBold -SeriesHeader "Read", "Write" 
 
@@ -184,10 +230,21 @@ $testsSum | Export-Csv -Path $csvoutputPath -NoTypeInformation -Append -Force
 $testsSum | Export-Csv -Path $csv2outputPath -NoTypeInformation -Force
 
 # Export data to an excel graph
-
-Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -Show -WorkSheetname $newname -Append -ReturnRange
+Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -WorkSheetname $BDStandardName -ReturnRange
 ##### format drive afterwards ######
 Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
 ## REMOVE TEMP CSV
 Remove-Item -Path $csv2outputPath
+$workbook = New-Object Spire.Xls.Workbook
+$workbook.LoadFromFile($exceloutputPath)
+$sheet = $workbook.Worksheets[0]
+$imgs = $workbook.SaveChartAsImage($sheet)
+# Save the charts to png files
+
+for ($i = 0; $i -lt $imgs.Length; $i++) {
+    $outputchartsPath = Join-Path -Path $chartsFolder -ChildPath ('{0}-Chart.png' -f $newname)
+    $fileStream = New-Object System.IO.FileStream($outputchartsPath, [System.IO.FileMode]::Create)
+    $imgs[$i].Save($fileStream, [System.Drawing.Imaging.ImageFormat]::Png)
+    $fileStream.Close()
+}
