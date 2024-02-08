@@ -12,3 +12,4 @@
  
 #### Changelog
     28 Jan 2024 - Initial Commit to Github (applying licenses and attaching actual code)
+    1  Feb 2024 - Added ability to export to an excel graph + deprecated sister program IFI-Enabler
