@@ -2,7 +2,7 @@
  Tests specified storage device and exports to CSV, Excel charts, and [soon] organizes photos in a .docx file.
  
 ## How it works
- This program initially asks for the drive letter and the name you wish to set the drive to. It will then run preset testing (currently 1MB read/write for 3 seconds each) - custom testing functionality will be added at a later date. The program will then output to a .csv, conveniently located in your 'Documents' folder, as well as an .XLSX file with charts located in the same folder (separated by 'Worksheet' name which equals the new name). The program also outputs image files (.PNGs) of the graphs (charts) to "DTUCharts", a folder this program creates in your 'Documents' folder. In the future, there will be functionality to automatically organize graph (chart) images into a word document.
+ This program initially asks for the drive letter and the name you wish to set the drive to. It will then run preset testing (currently 1MB read/write for 3 seconds each) - custom testing functionality will be added at a later date. The program will then output to a .csv, conveniently located in your 'Documents' folder, as well as an .XLSX file with charts located in the same folder (separated by 'Worksheet' name which equals the new name). The program also outputs image files (.PNGs) of the graphs (charts) to "DTUCharts", a folder this program creates in your 'Documents' folder. In the future, there will be functionality to automatically organize graph (chart) images into a .docx document.
  
 ### Credits for [DriveTestUltra](https://github.com/binarie0/DriveTestUltra)        
  https://github.com/dfinke/ImportExcel [Dependency in order to develop graphs without having Excel natively installed]    
