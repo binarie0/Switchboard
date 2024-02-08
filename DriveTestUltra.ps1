@@ -244,7 +244,7 @@ $testsSum | Export-Csv -Path $csv2outputPath -NoTypeInformation -Force
 # Export data to an excel graph
 Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -WorkSheetname $BDStandardName -ReturnRange
 ##### format drive afterwards ######
-#Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
+Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
 ## REMOVE TEMP 
 Remove-Item -Path $csv2outputPath
