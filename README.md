@@ -14,6 +14,11 @@
 
  binarie0 -> Majority of code compilation, graphics, output to .xlsx and .csv      
  EarthToFatt -> Initial conceptualization, code restructuring, graphics, graph (chart) output, .docx output (pending)      
+
+
+#### NOTE:
+This program currently requires its sister program, IFI Enabler, to function at full capacity. You can download IFI Enabler here: https://github.com/binarie0/IFI-Enabler
+
  
 #### Changelog
     28 Jan 2024 - Initial Commit to Github (applying licenses and attaching actual code) (binarie0)
