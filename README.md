@@ -11,6 +11,7 @@
  https://github.com/microsoft/diskspd [What this entire program is built off of]
  https://www.nuget.org/packages/FreeSpire.XLS [Excel graph (chart) output]
  https://www.nuget.org/downloads [One of the above required NuGet I forget which]
+
  binarie0 -> Majority of code compilation, graphics, output to .xlsx and .csv      
  EarthToFatt -> Initial conceptualization, code restructuring, graphics, graph (chart) output, .docx output (pending)      
  
