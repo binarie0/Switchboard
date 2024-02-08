@@ -1,5 +1,4 @@
-﻿param (
-    [Parameter(Mandatory = $true)][string]$drive,
+param (
     [string]$batchId=(Get-Date -format "yyyy-MM-dd_hh-mm-ss"), # 'u' and 's' will have colons, which is bad for filenames
     [string]$testSize='1M',
     [int]$durationSec=3, # changed from 5 seconds - 3 works fine on modern hardware.
@@ -10,6 +9,41 @@
     # Used to be: 'C:\Users\holter\Downloads\DiskSpdAuto-master\DiskSpdAuto-master\DiskSpd\amd64\diskspd.exe'
 )
 
+if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
+    Write-Host "ImportExcel module not found. Installing..."
+    Install-Module -Name ImportExcel -Force -ErrorAction Stop
+} else {
+    Write-Host "ImportExcel module is already installed. Skipping the installation process"
+}
+
+# Check if NuGet package provider is installed, and install if not
+if (-not (Get-PackageProvider -ListAvailable -Name NuGet -Force)) {
+    Write-Host "NuGet package provider not found. Installing..."
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop
+} else {
+    Write-Host "NuGet package provider is already installed. Skipping the installation process"
+}
+
+# Check if the module is already installed
+if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
+    # Module not installed, proceed with the installation
+    Install-Module -Name PSWriteOffice -Force -Scope CurrentUser -AllowClobber
+    Write-Host "Module 'PSWriteOffice' has been installed."
+} else {
+    Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
+}
+
+$validDrive = $false
+
+while (-not $validDrive) {
+    $drive = Read-Host -Prompt "Drive Letter"
+
+    if ($drive -match '^[A-Za-z]$' -and $drive -ne 'C') {
+        $validDrive = $true
+    } else {
+        Write-Host "Invalid drive letter. Please enter a valid drive letter other than 'C'."
+    }
+}
 $newname = Read-Host -Prompt "Barcode"
 #matts super cool export chart testing stuff
 Add-Type -Path (Join-Path $PSScriptRoot "Spire.XLS.dll")
@@ -28,29 +62,7 @@ if (-not (Test-Path $chartsFolder -PathType Container)) {
 
 #ImportExcel can be found here https://github.com/dfinke/ImportExcel
 # Check if ImportExcel module is installed, and install if not
-if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
-    Write-Host "ImportExcel module not found. Installing..."
-    Install-Module -Name ImportExcel -Force -ErrorAction Stop
-} else {
-    Write-Host "ImportExcel module is already installed."
-}
 
-# Check if NuGet package provider is installed, and install if not
-if (-not (Get-PackageProvider -ListAvailable -Name NuGet -Force)) {
-    Write-Host "NuGet package provider not found. Installing..."
-    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop
-} else {
-    Write-Host "NuGet package provider is already installed."
-}
-
-# Check if the module is already installed
-if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
-    # Module not installed, proceed with the installation
-    Install-Module -Name PSWriteOffice -Force -Scope CurrentUser -AllowClobber
-    Write-Host "Module 'PSWriteOffice' has been installed."
-} else {
-    Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
-}
 
 
 #get new name of the disk (should be ctrl v from barcode scanner)
@@ -232,9 +244,9 @@ $testsSum | Export-Csv -Path $csv2outputPath -NoTypeInformation -Force
 # Export data to an excel graph
 Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -WorkSheetname $BDStandardName -ReturnRange
 ##### format drive afterwards ######
-Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
+#Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
-## REMOVE TEMP CSV
+## REMOVE TEMP 
 Remove-Item -Path $csv2outputPath
 $workbook = New-Object Spire.Xls.Workbook
 $workbook.LoadFromFile($exceloutputPath)
@@ -248,3 +260,6 @@ for ($i = 0; $i -lt $imgs.Length; $i++) {
     $imgs[$i].Save($fileStream, [System.Drawing.Imaging.ImageFormat]::Png)
     $fileStream.Close()
 }
+
+
+pause
