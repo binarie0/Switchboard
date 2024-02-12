@@ -1,4 +1,4 @@
-param (
+﻿param (
     [string]$batchId=(Get-Date -format "yyyy-MM-dd_hh-mm-ss"), # 'u' and 's' will have colons, which is bad for filenames
     [string]$testSize='1M',
     [int]$durationSec=3, # changed from 5 seconds - 3 works fine on modern hardware.
@@ -173,17 +173,15 @@ $benchmarkContent = Get-Content -Raw ($PSScriptRoot + "\benchmark.tmp")
 $testFileParams = '{0}:\benchmark.tmp' -f $drive
 
 # Check if the file already exists, and if not, create it
-if (-not (Test-Path $testFileParams)) {
-    # Use the pre-loaded content if available, otherwise generate it
-    if ($null -ne $benchmarkContent) {
-        Set-Content -Path $testFileParams -Value $benchmarkContent
-    } else {
-        $params = ('{0} -d1 -S -Z1M -c{1}' -f $testFileParams, $testSize)
-        & $diskspd ($params -split ' ') > $xmlFile
-    }
+if ((-not (Test-Path $testFileParams)) -and ($null -ne $benchmarkContent)) {
+    New-Item -Path $testFileParams -Value $benchmarkContent -Force 
+} else {
+    # cannot use new item 
+    $params = ('{0} -d1 -S -Z1M -c{1}' -f $testFileParams, $testSize)
+    & $diskspd ($params -split ' ') > $xmlFile
 }
 
-$testFileParams='{0}:\benchmark.tmp' -f $drive
+# $testFileParams='{0}:\benchmark.tmp' -f $drive --> already declared above
 $xmlFile=('{0}-Generation.xml' -f $batchId);
 $params=( ('-Rxml -d1 -S -Z1M -c{0}' -f $testSize) ,$testFileParams) -join ' '; # make sure to write with cache disabled, or else on slow systems this will exit with data still writing from cache to disk.
 # Write-Host $params
@@ -248,18 +246,44 @@ Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
 ## REMOVE TEMP 
 Remove-Item -Path $csv2outputPath
+
+# Use spire to export the images
 $workbook = New-Object Spire.Xls.Workbook
 $workbook.LoadFromFile($exceloutputPath)
-$sheet = $workbook.Worksheets[0]
-$imgs = $workbook.SaveChartAsImage($sheet)
-# Save the charts to png files
+<# THIS IS FOR THE FUTURE WHERE WE EXPORT FROM THE MAIN EXCEL SPREADSHEET
 
+for ($p = 0; $p -lt $workbook.Worksheets.Length; $p++)
+{
+    $sheet = $workbook.Worksheets[$p]
+    $imgs = $workbook.SaveChartAsImage($sheet)
+
+
+    # Save the charts to png files
+
+    for ($i = 0; $i -lt $imgs.Length; $i++) {
+        $outputchartsPath = Join-Path -Path $chartsFolder -ChildPath ('{0}-Chart.png' -f $newname)
+        $fileStream = New-Object System.IO.FileStream($outputchartsPath, [System.IO.FileMode]::Create)
+        $imgs[$i].Save($fileStream, [System.Drawing.Imaging.ImageFormat]::Png)
+        $fileStream.Close()
+    }
+}   
+
+
+
+
+#>
+
+
+
+$sheet = $workbook.Worksheets[0] #gets the first sheet
+$imgs = $workbook.SaveChartAsImage($sheet) # exports as an array
+
+
+# Save the charts to png files
 for ($i = 0; $i -lt $imgs.Length; $i++) {
-    $outputchartsPath = Join-Path -Path $chartsFolder -ChildPath ('{0}-Chart.png' -f $newname)
-    $fileStream = New-Object System.IO.FileStream($outputchartsPath, [System.IO.FileMode]::Create)
-    $imgs[$i].Save($fileStream, [System.Drawing.Imaging.ImageFormat]::Png)
-    $fileStream.Close()
+    $outputchartsPath = Join-Path -Path $chartsFolder -ChildPath ('{0}-Chart.png' -f $newname) #need to create new path every time
+    $fileStream = New-Object System.IO.FileStream($outputchartsPath, [System.IO.FileMode]::Create) #open new filestream
+    $imgs[$i].Save($fileStream, [System.Drawing.Imaging.ImageFormat]::Png) #export as png
+    $fileStream.Close() #can't keep open bc memory leaks
 }
 
-
-pause
