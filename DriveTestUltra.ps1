@@ -33,33 +33,69 @@ if (-not (Get-PackageProvider -ListAvailable -Name NuGet -Force)) {
     Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
 }
 #>
+
+# set folder paths for charts
+$mainfolder = ([System.Environment]::GetFolderPath('MyDocuments'))
+$chartsFolder = Join-Path -Path $mainfolder -ChildPath "DTUCharts"
+
+
 if (-not (Get-Module -Name PSWriteWord -ListAvailable -ErrorAction SilentlyContinue)) {
     # Module not installed, proceed with the installation
     Install-Module -Name PSWriteWord -Force -Scope CurrentUser -AllowClobber
+
+    #replace file inside module forder with custom one added in (if available)
+    $pswritewordModule = Join-Path -Path $mainfolder -ChildPath "WindowsPowerShell\Modules\PSWriteWord\1.1.14\PSWriteWord.psm1"
+    $customModule = Join-Path -Path $PSScriptRoot ".\PSWriteWord.psm1"
+    if ([System.IO.File]::Exists($pswritewordModule) -and [System.IO.File]::Exists($customModule))
+    {
+        Set-Content -Path $pswritewordModule -Value $customModule
+    }
+
+    #proper install
     Write-Host "Module 'PSWriteWord' has been installed."
 } else {
     Write-Host "Module 'PSWriteWord' is already installed. Skipping the installation process."
 }
+
+
+
+#all examples of this program added this in, so to make sure the program works, we will have it in here too
 Import-Module PSWriteWord #-Force
 
+# validity of drive letter
 $validDrive = $false
 
 while (-not $validDrive) {
     $drive = Read-Host -Prompt "Drive Letter"
 
+    #make sure drive is not C drive since I think people want to keep system32
     if ($drive -match '^[A-Za-z]$' -and $drive -ne 'C') {
         $validDrive = $true
     } else {
         Write-Host "Invalid drive letter. Please enter a valid drive letter other than 'C'."
     }
 }
-$newname = Read-Host -Prompt "Barcode"
-#matts super cool export chart testing stuff
-Add-Type -Path (Join-Path $PSScriptRoot "Spire.XLS.dll")
 
-# Combine with the "Charts" folder
-$mainfolder = ([System.Environment]::GetFolderPath('MyDocuments'))
-$chartsFolder = Join-Path -Path $mainfolder -ChildPath "DTUCharts"
+# validity of drive name
+$validname = $false
+
+while (-not $validname)
+{
+    $newname = Read-Host -Prompt "Barcode"
+
+    if ($newname.Length -le 11) # 11 is max FAT character limit, will *maybe* add NTFS support later not sure
+    {
+        $validname = $true
+    }
+    else {
+        Write-Host "Invalid name of drive. Please enter a drive name less than or equal to 11 characters."
+    }
+}
+
+# Spire allows the program to generate the graphs as .pngs
+Add-Type -Path (Join-Path $PSScriptRoot ".\Spire.XLS.dll")
+
+
 
 
 # Check if the folder exists, and create it if not
@@ -75,10 +111,9 @@ if (-not (Test-Path $chartsFolder -PathType Container)) {
 
 
 #get new name of the disk (should be ctrl v from barcode scanner)
-
 $BDStandardName = "Default"
-###### Rename drive to barcode number ######
 
+# renames drive to new name now because, if left until after tests, the new name will not appear on csvs, spreadsheets, and images
 Set-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
 
@@ -137,6 +172,7 @@ function OneTargetRead {
 function TotalTargetRead {
     param ( $tests )
 
+    #create document for .csv
     $o = New-Object psobject
 
     # drive meta data
@@ -145,7 +181,7 @@ function TotalTargetRead {
     Add-Member -InputObject $o -MemberType noteproperty -Name 'DriveVolumeLabel' -Value $tests[0].'Drive VolumeLabel'
     Add-Member -InputObject $o -MemberType noteproperty -Name 'Batch' -Value $tests[0].Batch
     Add-Member -InputObject $o -MemberType noteproperty -Name 'TestTime' -Value $tests[0].'Test Time'
-
+    # io meta data
     Add-Member -InputObject $o -MemberType noteproperty -Name 'TestFileSize' -Value $tests[0].'Test File Size'
     Add-Member -InputObject $o -MemberType noteproperty -Name 'TestDuration' -Value $tests[0].'Duration [s]'
 
@@ -177,6 +213,7 @@ function TotalTargetRead {
     return $o
 }
 
+#.tmp file used by diskspd.exe in order to run tests
 $benchmarkContent = Get-Content -Raw ($PSScriptRoot + "\benchmark.tmp")
 # initialize test file
 $testFileParams = '{0}:\benchmark.tmp' -f $drive
@@ -216,7 +253,7 @@ foreach ($test in @{name='Sequential read'; params='-b1M -o1 -t1 -w0 -Z1M'},
     @{name='Random T32 write'; params='-b4k -o1 -t32 -r -w100 -Z1M'}#>) {
         # run test
         $params=($fixedParams,$batchAutoParam,$test.params,$testFileParams) -join ' ';
-        
+        # set xml file
         $xmlFile=('{0}-{1}.xml' -f $batchId, $test.name);
 
         # Write-Host $params
@@ -225,7 +262,8 @@ foreach ($test in @{name='Sequential read'; params='-b1M -o1 -t1 -w0 -Z1M'},
 
         #highly doubt this is necessary with modern hardware
         #Start-Sleep $restSec # sleep a sec to calm down IO
-
+        
+        # run diskspd tests and output to xml
         & $diskspd ($params -split ' ') > $xmlFile
 
         # read result and write to batch file
@@ -244,6 +282,7 @@ Write-Host "Sequential Read Values: $q_sr"
 Write-Host "Sequential Write Values: $q_sw"
 #>
 
+#export to csv
         $testResult | Export-Csv ('{0}.csv' -f $batchId) -NoTypeInformation -Append
         $tests+=$testResult
 }
@@ -290,6 +329,8 @@ Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
 # Add-WordBarChart needs to receive the values as individual elements, not arrays
 # Convert the arrays to individual elements if they are arrays
+
+# y values for charts
 $y_sr_values = $y_sr -join ','
 $y_sw_values = $y_sw -join ','
 
@@ -334,27 +375,31 @@ for ($i = 0; $i -lt $imgs.Length; $i++) {
     $fileStream.Close() #can't keep open bc memory leaks
 }
 
-$ChartImgDoc = Join-Path -Path $mainfolder -ChildPath ('AQL-{0}.docx' -f $date)
+$ChartImgDoc = Join-Path -Path $mainfolder -ChildPath ('ChartDoc-{0}.docx' -f $date) #chart doc yippee!
 
 if (-not (Test-Path $ChartImgDoc)) {
-    $WordDocument2 = New-WordDocument $ChartImgDoc
-    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false
-    Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment left -Verbose
+    $WordDocument2 = New-WordDocument $ChartImgDoc # new doc
+    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false #blahblahblah 
+    Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment left -Verbose #adds picture from DTUCharts folder
 } else {
-    $WordDocument2 = Get-WordDocument $ChartImgDoc
-    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false
-
+    $WordDocument2 = Get-WordDocument $ChartImgDoc #import doc info
+    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false #blahblahblah
+    #adds picture from DTUCharts folder
     Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment both -Verbose -Paragraph $p.AppendPicture
+    # tell user
     Write-Host "The file already exists, writing to file."
 }
 
-
+#make sure word doc is saved
 Save-WordDocument $WordDocument2 -Language 'en-US' -Supress $true -OpenDocument
+<#
+
+
 #TESTING ONLY
-$FilePathChung = "$Env:USERPROFILE\Desktop\PSWriteWord-Matt-Test.docx"
+$wordDocLocation = Join-Path -Path $chartsFolder -ChildPath ('Charts.docx')
 
 
-$WordDocument = New-WordDocument $FilePathChung
+$WordDocument = New-WordDocument $wordDocLocation
 Add-WordText -WordDocument $WordDocument -Text 'Bar Chart test #1' `
     -FontSize 15 `
     -Color Blue `
@@ -362,61 +407,16 @@ Add-WordText -WordDocument $WordDocument -Text 'Bar Chart test #1' `
 #    Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances' -Names 'Today', 'Yesterday' -Values 1050.50, 2000 -ChartLegendPosition Bottom -ChartLegendOverlay $false
 Add-WordBarChart -WordDocument $WordDocument -ChartX 200 -ChartY 200 -ChartName "$newname" -Names "Sequential Read: $y_sr_values MB/s", "Sequential Write: $y_sw_values MB/s" -Values $y_sr_values, $y_sw_values -ChartLegendPosition Bottom -ChartLegendOverlay $false 
 
-<#Add-WordText -WordDocument $WordDocument -Text 'Bar Chart test #2' `
-    -FontSize 15 `
-    -Color Blue `
-    -Bold $true -HeadingType Heading1 -Supress $True
-
-$Series1 = Add-WordChartSeries -ChartName 'Squingus'  -Names 'Squningle1' -Values $t_sr,
-$Series2 = Add-WordChartSeries -ChartName 'Gabringus'  -Names 'Gabringus1' -Values $t_sw,
-
-Add-WordBarChart -WordDocument $WordDocument -ChartName 'My fortnite eroleplay'-ChartLegendPosition Left -ChartLegendOverlay $false -ChartSeries $Series1, $Series2
-#>
-<#
-Add-WordText -WordDocument $WordDocument -Text 'Bar Chart Example #3' `
-    -FontSize 15 `
-    -Color Blue `
-    -Bold $true -HeadingType Heading1 -Supress $True
-
-
-$Series3 = Add-WordChartSeries -ChartName 'One'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 1050.50, 2000, 20000
-$Series4 = Add-WordChartSeries -ChartName 'Two'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 3000, 2000, 1000
-
-
-Add-WordBarChart -WordDocument $WordDocument -ChartName 'My grin'-ChartLegendPosition Bottom -ChartLegendOverlay $false -ChartSeries $Series3, $Series4 -BarGrouping Stacked
-<#
-Add-WordText -WordDocument $WordDocument -Text 'Bar Chart Example #4' `
-    -FontSize 15 `
-    -Color Blue `
-    -Bold $true -HeadingType Heading1 -Supress $True
-
-
-$Series5 = Add-WordChartSeries -ChartName 'One'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 1050.50, 2000, 20000
-$Series6 = Add-WordChartSeries -ChartName 'Two'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 3000, 2000, 1000
-
-Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances'-ChartLegendPosition Bottom -ChartLegendOverlay $false -ChartSeries $Series5, $Series6 -BarDirection Column
-
-
-Add-WordText -WordDocument $WordDocument -Text 'Bar Chart Example #3 - No Legend' `
-    -FontSize 15 `
-    -Color Blue `
-    -Bold $true -HeadingType Heading1 -Supress $True
-
-$Series7 = Add-WordChartSeries -ChartName 'One'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 1050.50, 2000, 20000
-$Series8 = Add-WordChartSeries -ChartName 'Two'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 3000, 2000, 1000
-
-Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances'-ChartLegendPosition Bottom -ChartLegendOverlay $false -ChartSeries $Series7, $Series8 -BarDirection Column -NoLegend
-#>
 Save-WordDocument $WordDocument -Supress $True
 
 ### Start Word with file
-Invoke-Item $FilePathChung
+#Invoke-Item $wordDocLocation
+#>
 
-## End of matts fucky wucky code
 
 ## REMOVE TEMP 
 Remove-Item -Path $csv2outputPath
 
 
-
+#"Press enter to continue..." :3
 pause
