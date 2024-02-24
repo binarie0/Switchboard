@@ -29,3 +29,4 @@ This program currently requires its sister program, IFI Enabler, to function at 
     01 Feb 2024 - Added ability to export to an excel graph + archived sister program IFI-Enabler (binarie0)
     08 Feb 2024 - General code restructuring, general README.md improvements (EarthToFatt)
     11 Feb 2024 - Unarchived IFI-Enabler as solution seems to need improvement, minor code restructuring and change as to how a file is created / edited (binarie0)
+    24 Feb 2024 - Major testing on outputting charts to .docx natively, as well as testing outputting /organizing chart .png files to separate .docx. General code cleanup performed, and false drive name detection implemented. (binarie0/EarthToFatt)
