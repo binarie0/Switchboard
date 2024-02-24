@@ -25,13 +25,22 @@ if (-not (Get-PackageProvider -ListAvailable -Name NuGet -Force)) {
 }
 
 # Check if the module is already installed
-if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
+<#if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
     # Module not installed, proceed with the installation
     Install-Module -Name PSWriteOffice -Force -Scope CurrentUser -AllowClobber
     Write-Host "Module 'PSWriteOffice' has been installed."
 } else {
     Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
 }
+#>
+if (-not (Get-Module -Name PSWriteWord -ListAvailable -ErrorAction SilentlyContinue)) {
+    # Module not installed, proceed with the installation
+    Install-Module -Name PSWriteWord -Force -Scope CurrentUser -AllowClobber
+    Write-Host "Module 'PSWriteWord' has been installed."
+} else {
+    Write-Host "Module 'PSWriteWord' is already installed. Skipping the installation process."
+}
+Import-Module PSWriteWord #-Force
 
 $validDrive = $false
 
@@ -194,6 +203,7 @@ $fixedParams='-L -S -Rxml'
 # batch auto params
 $batchAutoParam='-d{0} -W{1} -C{2}' -f $durationSec, $warmupSec, $cooldownSec
 
+
 # iterate over tests
 $tests=@()
 foreach ($test in @{name='Sequential read'; params='-b1M -o1 -t1 -w0 -Z1M'},
@@ -220,10 +230,25 @@ foreach ($test in @{name='Sequential read'; params='-b1M -o1 -t1 -w0 -Z1M'},
 
         # read result and write to batch file
         $driveObj=[System.IO.DriveInfo]::GetDrives() | Where-Object {$_.Name -eq $drive }
-        $testResult = OneTargetRead $test $xmlFile $driveObj 
+        $testResult = OneTargetRead $test $xmlFile $driveObj
+         # Store the values in new variables
+    <#if ($test.name -eq 'Sequential read') {
+        $q_sr = $testResult.SequentialRead
+    } elseif ($test.name -eq 'Sequential write') {
+        $q_sw = $testResult.SequentialWrite
+    } #>
+
+    <#
+    # Output the values to the terminal for debugging
+Write-Host "Sequential Read Values: $q_sr"
+Write-Host "Sequential Write Values: $q_sw"
+#>
+
         $testResult | Export-Csv ('{0}.csv' -f $batchId) -NoTypeInformation -Append
         $tests+=$testResult
 }
+
+   
 
 # sum drive tests to a single row
 $testsSum = TotalTargetRead $tests
@@ -233,19 +258,41 @@ $date = Get-Date -Format "yyyy-MM-dd"
 $csvoutputPath = Join-Path -Path $mainfolder -ChildPath ('BD-{0}.csv' -f $date)
 $csv2outputPath = Join-Path -Path $mainfolder -ChildPath ('BD-{0}.csv' -f $newname)
 $exceloutputPath = Join-Path -Path $mainfolder -ChildPath ('BD.xlsx')
+
+
 #set chart definition
 $chart = New-ExcelChartDefinition -Title $newname -YMaxValue 100 -XAxisTitleText "Read & Write" -YAxisTitleText "Transfer Rate [MB/s]" -YRange 'SequentialRead','SequentialWrite' -ChartType "BarClustered" -LegendBold -SeriesHeader "Read", "Write" 
 
 $testsSum | Export-Csv -Path $csvoutputPath -NoTypeInformation -Append -Force
 $testsSum | Export-Csv -Path $csv2outputPath -NoTypeInformation -Force
 
+# more of matts fucky wucky code
+# Get the latest .csv file
+# Import the latest .csv file
+$latestData = Import-Csv $csv2outputPath
+
+# Extract the latest values for SequentialRead and SequentialWrite
+$y_sr = @($latestData.SequentialRead)
+$y_sw = @($latestData.SequentialWrite)
+
+
+# Output the latest values for SequentialRead and SequentialWrite
+Write-Host "Latest Sequential Read Value: $y_sr"
+Write-Host "Latest Sequential Write Value: $y_sw"
+
+
 # Export data to an excel graph
 Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -WorkSheetname $BDStandardName -ReturnRange
 ##### format drive afterwards ######
 Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
-## REMOVE TEMP 
-Remove-Item -Path $csv2outputPath
+## Matts fucky wucky code
+
+# Add-WordBarChart needs to receive the values as individual elements, not arrays
+# Convert the arrays to individual elements if they are arrays
+$y_sr_values = $y_sr -join ','
+$y_sw_values = $y_sw -join ','
+
 
 # Use spire to export the images
 $workbook = New-Object Spire.Xls.Workbook
@@ -287,3 +334,89 @@ for ($i = 0; $i -lt $imgs.Length; $i++) {
     $fileStream.Close() #can't keep open bc memory leaks
 }
 
+$ChartImgDoc = Join-Path -Path $mainfolder -ChildPath ('AQL-{0}.docx' -f $date)
+
+if (-not (Test-Path $ChartImgDoc)) {
+    $WordDocument2 = New-WordDocument $ChartImgDoc
+    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false
+    Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment left -Verbose
+} else {
+    $WordDocument2 = Get-WordDocument $ChartImgDoc
+    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false
+
+    Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment both -Verbose -Paragraph $p.AppendPicture
+    Write-Host "The file already exists, writing to file."
+}
+
+
+Save-WordDocument $WordDocument2 -Language 'en-US' -Supress $true -OpenDocument
+#TESTING ONLY
+$FilePathChung = "$Env:USERPROFILE\Desktop\PSWriteWord-Matt-Test.docx"
+
+
+$WordDocument = New-WordDocument $FilePathChung
+Add-WordText -WordDocument $WordDocument -Text 'Bar Chart test #1' `
+    -FontSize 15 `
+    -Color Blue `
+    -Bold $true -HeadingType Heading1 -Supress $True
+#    Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances' -Names 'Today', 'Yesterday' -Values 1050.50, 2000 -ChartLegendPosition Bottom -ChartLegendOverlay $false
+Add-WordBarChart -WordDocument $WordDocument -ChartX 200 -ChartY 200 -ChartName "$newname" -Names "Sequential Read: $y_sr_values MB/s", "Sequential Write: $y_sw_values MB/s" -Values $y_sr_values, $y_sw_values -ChartLegendPosition Bottom -ChartLegendOverlay $false 
+
+<#Add-WordText -WordDocument $WordDocument -Text 'Bar Chart test #2' `
+    -FontSize 15 `
+    -Color Blue `
+    -Bold $true -HeadingType Heading1 -Supress $True
+
+$Series1 = Add-WordChartSeries -ChartName 'Squingus'  -Names 'Squningle1' -Values $t_sr,
+$Series2 = Add-WordChartSeries -ChartName 'Gabringus'  -Names 'Gabringus1' -Values $t_sw,
+
+Add-WordBarChart -WordDocument $WordDocument -ChartName 'My fortnite eroleplay'-ChartLegendPosition Left -ChartLegendOverlay $false -ChartSeries $Series1, $Series2
+#>
+<#
+Add-WordText -WordDocument $WordDocument -Text 'Bar Chart Example #3' `
+    -FontSize 15 `
+    -Color Blue `
+    -Bold $true -HeadingType Heading1 -Supress $True
+
+
+$Series3 = Add-WordChartSeries -ChartName 'One'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 1050.50, 2000, 20000
+$Series4 = Add-WordChartSeries -ChartName 'Two'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 3000, 2000, 1000
+
+
+Add-WordBarChart -WordDocument $WordDocument -ChartName 'My grin'-ChartLegendPosition Bottom -ChartLegendOverlay $false -ChartSeries $Series3, $Series4 -BarGrouping Stacked
+<#
+Add-WordText -WordDocument $WordDocument -Text 'Bar Chart Example #4' `
+    -FontSize 15 `
+    -Color Blue `
+    -Bold $true -HeadingType Heading1 -Supress $True
+
+
+$Series5 = Add-WordChartSeries -ChartName 'One'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 1050.50, 2000, 20000
+$Series6 = Add-WordChartSeries -ChartName 'Two'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 3000, 2000, 1000
+
+Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances'-ChartLegendPosition Bottom -ChartLegendOverlay $false -ChartSeries $Series5, $Series6 -BarDirection Column
+
+
+Add-WordText -WordDocument $WordDocument -Text 'Bar Chart Example #3 - No Legend' `
+    -FontSize 15 `
+    -Color Blue `
+    -Bold $true -HeadingType Heading1 -Supress $True
+
+$Series7 = Add-WordChartSeries -ChartName 'One'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 1050.50, 2000, 20000
+$Series8 = Add-WordChartSeries -ChartName 'Two'  -Names 'Today', 'Yesterday', 'Two days ago' -Values 3000, 2000, 1000
+
+Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances'-ChartLegendPosition Bottom -ChartLegendOverlay $false -ChartSeries $Series7, $Series8 -BarDirection Column -NoLegend
+#>
+Save-WordDocument $WordDocument -Supress $True
+
+### Start Word with file
+Invoke-Item $FilePathChung
+
+## End of matts fucky wucky code
+
+## REMOVE TEMP 
+Remove-Item -Path $csv2outputPath
+
+
+
+pause
