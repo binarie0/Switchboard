@@ -1,4 +1,4 @@
-# Switchboard: A Benchmarking Tool
+# Switchboard: A Benchmark Tool
  Powershell program that tests specified storage device, formats said storage device, and exports test data to CSV, Excel charts, and [soon] organizes photos in a .docx file.
  
 ## How it works
