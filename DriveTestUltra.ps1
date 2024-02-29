@@ -8,6 +8,19 @@
     [string]$diskspd= $PSScriptRoot + ".\diskspd.exe"
     # Used to be: 'C:\Users\holter\Downloads\DiskSpdAuto-master\DiskSpdAuto-master\DiskSpd\amd64\diskspd.exe'
 )
+# set folder paths for charts
+$mainfolder = ([System.Environment]::GetFolderPath('MyDocuments'))
+$chartsFolder = Join-Path -Path $mainfolder -ChildPath "SwitchboardCharts"
+
+
+
+$pswritewordModule = Join-Path -Path $mainfolder -ChildPath "WindowsPowerShell\Modules\PSWriteOffice\0.2.0\PSWriteOffice.psm1"
+$customModule = Join-Path -Path $PSScriptRoot ".\PSWriteOffice.psm1"
+$pswritewordD = Join-Path -Path $mainfolder -ChildPath "WindowsPowerShell\Modules\PSWriteOffice\0.2.0\PSWriteOffice.psd1"
+$customModuleD = Join-Path -Path $PSScriptRoot ".\PSWriteOffice.psd1"
+
+Unblock-File -Path $pswritewordModule
+Unblock-File -Path $pswritewordD
 
 if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
     Write-Host "ImportExcel module not found. Installing..."
@@ -24,43 +37,27 @@ if (-not (Get-PackageProvider -ListAvailable -Name NuGet -Force)) {
     Write-Host "NuGet package provider is already installed. Skipping the installation process"
 }
 
-# Check if the module is already installed
-<#if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
+if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyContinue)) {
     # Module not installed, proceed with the installation
-    Install-Module -Name PSWriteOffice -Force -Scope CurrentUser -AllowClobber
-    Write-Host "Module 'PSWriteOffice' has been installed."
-} else {
-    Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
-}
-#>
-
-# set folder paths for charts
-$mainfolder = ([System.Environment]::GetFolderPath('MyDocuments'))
-$chartsFolder = Join-Path -Path $mainfolder -ChildPath "DTUCharts"
-
-
-if (-not (Get-Module -Name PSWriteWord -ListAvailable -ErrorAction SilentlyContinue)) {
-    # Module not installed, proceed with the installation
-    Install-Module -Name PSWriteWord -Force -Scope CurrentUser -AllowClobber
-
+    Install-Module -Name PSWriteOffice -MaximumVersion 0.2.0 -Force -Scope CurrentUser -AllowClobber
     #replace file inside module forder with custom one added in (if available)
-    $pswritewordModule = Join-Path -Path $mainfolder -ChildPath "WindowsPowerShell\Modules\PSWriteWord\1.1.14\PSWriteWord.psm1"
-    $customModule = Join-Path -Path $PSScriptRoot ".\PSWriteWord.psm1"
+    
     if ([System.IO.File]::Exists($pswritewordModule) -and [System.IO.File]::Exists($customModule))
     {
         Set-Content -Path $pswritewordModule -Value $customModule
     }
+    
+    if ([System.IO.File]::Exists($pswritewordD) -and [System.IO.File]::Exists($customModuleD))
+    {
+        Set-Content -Path $pswritewordD -Value $customModuleD
+    }
 
     #proper install
-    Write-Host "Module 'PSWriteWord' has been installed."
+    Write-Host "Module 'PSWriteOffice' has been installed."
 } else {
-    Write-Host "Module 'PSWriteWord' is already installed. Skipping the installation process."
+    Write-Host "Module 'PSWriteOffice' is already installed. Skipping the installation process."
 }
-
-
-
-#all examples of this program added this in, so to make sure the program works, we will have it in here too
-Import-Module PSWriteWord #-Force
+Import-Module PSWriteOffice -Force
 
 # validity of drive letter
 $validDrive = $false
@@ -83,12 +80,12 @@ while (-not $validname)
 {
     $newname = Read-Host -Prompt "Barcode"
 
-    if ($newname.Length -le 11) # 11 is max FAT character limit, will *maybe* add NTFS support later not sure
+    if ($newname.Length -le 11 -and $newname.Length -ge 3) # 11 is max FAT character limit, will *maybe* add NTFS support later not sure
     {
         $validname = $true
     }
     else {
-        Write-Host "Invalid name of drive. Please enter a drive name less than or equal to 11 characters."
+        Write-Host "Invalid name of drive. Please enter a drive name between 3 and 11 characters."
     }
 }
 
@@ -114,7 +111,7 @@ if (-not (Test-Path $chartsFolder -PathType Container)) {
 $BDStandardName = "Default"
 
 # renames drive to new name now because, if left until after tests, the new name will not appear on csvs, spreadsheets, and images
-Set-Volume -DriveLetter $drive -NewFileSystemLabel $newname
+Set-Volume -DriveLetter $drive.ToUpper() -NewFileSystemLabel $newname
 
 
 # get test summary object
@@ -300,7 +297,7 @@ $exceloutputPath = Join-Path -Path $mainfolder -ChildPath ('BD.xlsx')
 
 
 #set chart definition
-$chart = New-ExcelChartDefinition -Title $newname -YMaxValue 100 -XAxisTitleText "Read & Write" -YAxisTitleText "Transfer Rate [MB/s]" -YRange 'SequentialRead','SequentialWrite' -ChartType "BarClustered" -LegendBold -SeriesHeader "Read", "Write" 
+$chart = New-ExcelChartDefinition -Title $newname -YMaxValue 100 <#-XAxisTitleText "Read & Write"#> -YAxisTitleText "Transfer Rate [MB/s]" -YRange 'SequentialRead','SequentialWrite' -ChartType "BarClustered" -LegendBold -SeriesHeader "Read", "Write" -LegendSize 20 -TitleBold -TitleSize 20 -XAxisTitleSize 20 -YAxisTitleSize 20 -
 
 $testsSum | Export-Csv -Path $csvoutputPath -NoTypeInformation -Append -Force
 $testsSum | Export-Csv -Path $csv2outputPath -NoTypeInformation -Force
@@ -321,7 +318,7 @@ Write-Host "Latest Sequential Write Value: $y_sw"
 
 
 # Export data to an excel graph
-Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -WorkSheetname $BDStandardName -ReturnRange
+Import-Csv -Path $csv2outputPath | Export-Excel $exceloutputpath -AutoNameRange -ExcelChartDefinition $chart -WorkSheetname $BDStandardName
 ##### format drive afterwards ######
 Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 
@@ -331,9 +328,10 @@ Format-Volume -DriveLetter $drive -NewFileSystemLabel $newname
 # Convert the arrays to individual elements if they are arrays
 
 # y values for charts
+<#
 $y_sr_values = $y_sr -join ','
 $y_sw_values = $y_sw -join ','
-
+#>
 
 # Use spire to export the images
 $workbook = New-Object Spire.Xls.Workbook
@@ -366,53 +364,21 @@ for ($p = 0; $p -lt $workbook.Worksheets.Length; $p++)
 $sheet = $workbook.Worksheets[0] #gets the first sheet
 $imgs = $workbook.SaveChartAsImage($sheet) # exports as an array
 
-
+[string[]]$imageFileRelativePaths = @("") * $imgs.Count
 # Save the charts to png files
 for ($i = 0; $i -lt $imgs.Length; $i++) {
-    $outputchartsPath = Join-Path -Path $chartsFolder -ChildPath ('{0}-Chart.png' -f $newname) #need to create new path every time
+    $imageFileRelativePaths[$i] = ('{0}-Chart.png' -f $newname);
+    $outputchartsPath = Join-Path -Path $chartsFolder -ChildPath $imageFileRelativePaths[$i] #need to create new path every time
     $fileStream = New-Object System.IO.FileStream($outputchartsPath, [System.IO.FileMode]::Create) #open new filestream
     $imgs[$i].Save($fileStream, [System.Drawing.Imaging.ImageFormat]::Png) #export as png
     $fileStream.Close() #can't keep open bc memory leaks
 }
-
 $ChartImgDoc = Join-Path -Path $mainfolder -ChildPath ('ChartDoc-{0}.docx' -f $date) #chart doc yippee!
 
-if (-not (Test-Path $ChartImgDoc)) {
-    $WordDocument2 = New-WordDocument $ChartImgDoc # new doc
-    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false #blahblahblah 
-    Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment left -Verbose #adds picture from DTUCharts folder
-} else {
-    $WordDocument2 = Get-WordDocument $ChartImgDoc #import doc info
-    $PlaceToAddPicture = Add-WordText -WordDocument $WordDocument2 -Text 'Adding a picture...' -Supress $false #blahblahblah
-    #adds picture from DTUCharts folder
-    Add-WordPicture -WordDocument $WordDocument2 -ImagePath $outputchartsPath -ImageWidth 200 -ImageHeight 150 -Alignment both -Verbose -Paragraph $p.AppendPicture
-    # tell user
-    Write-Host "The file already exists, writing to file."
-}
+if ([System.IO.File]::Exists($ChartImgDoc)) {$Document = Get-OfficeWord $ChartImgDoc}
+else {$Document = New-OfficeWord $ChartImgDoc}
 
-#make sure word doc is saved
-Save-WordDocument $WordDocument2 -Language 'en-US' -Supress $true -OpenDocument
-<#
-
-
-#TESTING ONLY
-$wordDocLocation = Join-Path -Path $chartsFolder -ChildPath ('Charts.docx')
-
-
-$WordDocument = New-WordDocument $wordDocLocation
-Add-WordText -WordDocument $WordDocument -Text 'Bar Chart test #1' `
-    -FontSize 15 `
-    -Color Blue `
-    -Bold $true -HeadingType Heading1 -Supress $True
-#    Add-WordBarChart -WordDocument $WordDocument -ChartName 'My finances' -Names 'Today', 'Yesterday' -Values 1050.50, 2000 -ChartLegendPosition Bottom -ChartLegendOverlay $false
-Add-WordBarChart -WordDocument $WordDocument -ChartX 200 -ChartY 200 -ChartName "$newname" -Names "Sequential Read: $y_sr_values MB/s", "Sequential Write: $y_sw_values MB/s" -Values $y_sr_values, $y_sw_values -ChartLegendPosition Bottom -ChartLegendOverlay $false 
-
-Save-WordDocument $WordDocument -Supress $True
-
-### Start Word with file
-#Invoke-Item $wordDocLocation
-#>
-
+New-OfficeWordImage -Document $Document -folderPath $mainfolder -imageFolder $chartsFolder -imageFile $imageFileRelativePaths[0] -openWord $true
 
 ## REMOVE TEMP 
 Remove-Item -Path $csv2outputPath
