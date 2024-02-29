@@ -10,9 +10,8 @@
  
 ### Credits for [Switchboard](https://github.com/binarie0/Switchboard)        
  https://github.com/dfinke/ImportExcel [Dependency in order to develop graphs (charts) without having Excel natively installed]    
- https://github.com/ayavilevich/DiskSpdAuto [Modified version of this is used to heavily automate testing with DiskSPD]        
- https://github.com/binarie0/PSWriteShmurd [Custom version of PSWriteWord with tiny changes, required due to PSWriteWord being deprecated. Required for native chart output to .docx (Feature TBA)]        
- https://github.com/EvotecIT/PSWriteWord [Origin of PSWriteSmurd]        
+ https://github.com/ayavilevich/DiskSpdAuto [Modified version of this is used to heavily automate testing with DiskSPD] 
+ https://github.com/EvotecIT/PSWriteOffice [Modified version of this is used to append images]
  https://github.com/microsoft/diskspd [Foundation of benchmark structure]        
  https://www.nuget.org/packages/FreeSpire.XLS [Excel graph (chart) output]        
  https://www.nuget.org/downloads [One of the above required NuGet I forget which lol]        
