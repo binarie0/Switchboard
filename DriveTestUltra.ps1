@@ -44,12 +44,12 @@ if (-not (Get-Module -Name PSWriteOffice -ListAvailable -ErrorAction SilentlyCon
     
     if ([System.IO.File]::Exists($pswritewordModule) -and [System.IO.File]::Exists($customModule))
     {
-        Set-Content -Path $pswritewordModule -Value $customModule
+        Set-Content -Path $pswritewordModule -Value (Get-Content $customModule)
     }
     
     if ([System.IO.File]::Exists($pswritewordD) -and [System.IO.File]::Exists($customModuleD))
     {
-        Set-Content -Path $pswritewordD -Value $customModuleD
+        Set-Content -Path $pswritewordD -Value (Get-Content $customModuleD)
     }
 
     #proper install
