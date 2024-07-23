@@ -33,3 +33,4 @@ This program currently requires its sister program, IFI Enabler, to function at 
     24 Feb 2024 - Major testing on outputting charts to .docx natively, as well as testing outputting / organizing chart .png files to separate .docx. General code cleanup performed, and false drive name detection implemented. Program no longer uses PSWriteOffice, instead opting for PSWriteShmurd. (binarie0/EarthToFatt)
     26 Feb 2024 - Change name of DriveTestUltra to Switchboard, change PsWriteWord.psm1 such that chartX and chartY have default values   
     28 Feb 2024 - Added Output to Word, resolved conflicts with drive letters, added custom image support to PSWriteOffice.psm1 and PSWriteOffice.psd1. Also added Unblock-File for PSWriteOffice
+    23 Jul 2024 - Update to build 1.0 (MORE INFO TO BE ADDED TO THIS ENTRY)
