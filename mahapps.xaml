@@ -1,0 +1,163 @@
+<Controls:MetroWindow 
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+	Title="Switchboard" 
+	Height="250"
+	Width="575"
+	GlowBrush="{DynamicResource AccentColorBrush}">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source=".\resources\Icons.xaml" />
+                <ResourceDictionary Source=".\resources\custom.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Colors.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Accents/Red.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Accents/BaseLight.xaml" />
+                
+
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>	
+        <StackPanel Margin="10,10,10,10" HorizontalAlignment="Left" VerticalAlignment="Top" Height="250">
+            <TabControl HorizontalAlignment="Left" Height="250"  VerticalAlignment="Top" Width="575">
+                <TabItem Header="Benchmark" Margin="0,0,0,0">
+                
+                    <Grid>
+                        <Border Width="260" Height="155" Margin="-300,-140,0,0" BorderThickness="1">
+                            <Image Source=".\resources\logo.png" Stretch="Uniform"/>
+                        </Border>
+                        <StackPanel>
+                           <!-- New Image positioned above the "Run" button -->
+                            <!--<Grid Margin="0,20,0,0" HorizontalAlignment="Center">
+                                <Image Source="{Binding logoImage}" Width="100" Height="100"/>
+                            </Grid>-->
+                            <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight" Width="400" HorizontalAlignment="Left" Margin="30,10,0,0">
+                                <!--<Controls:ToggleSwitch Header="ToggleSwitch test" x:Name="Toggle_Action" /> -->
+								<Button x:Name="Run" Content="Run" HorizontalAlignment="Left" Margin="5,75,0,0" VerticalAlignment="Top" Width="120" Height="40" />
+                                <!--<TextBox x:Name="txtbox_Toggle" Height="23" Margin="5,25,0,0" Width="75"/> -->
+                            </StackPanel>
+                            <!--
+                                LOADING BAR HERE    
+                            <StackPanel Orientation="Vertical" FlowDirection="LeftToRight" Width="400" HorizontalAlignment="Left" Margin="-90,35,0,0">
+                                <ProgressBar Value="50" IsIndeterminate="True"  Width="200"/>
+                            </StackPanel>
+                            -->
+
+              <!--          
+       <TextBox x:Name="TerminalOutput" 
+                 HorizontalAlignment="Left" 
+                 VerticalAlignment="Bottom"
+                 Margin="10"
+                 Height="100"
+                 Width = "300"
+                 TextWrapping="Wrap"
+                 IsReadOnly="True"
+                 VerticalScrollBarVisibility="Auto"/>
+    -->    
+<Grid  Margin="255,-170,0,0">
+  <Border Width="250" Height="200" Margin="10" BorderThickness="1">
+
+        <!-- Add the Image control inside the Border -->
+        <Image Name="Image_Control" Stretch="Uniform"/>
+    </Border>
+    </Grid>
+                        </StackPanel>
+
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="About" Margin="0,0,0,0">
+    <Grid>
+        <StackPanel>
+        
+            <!-- Add text box with Lorem Ipsum text -->
+            <TextBox Text="
+                                                        MIT License
+
+Switchboard Copyright (c) 2024 binarie0 and EarthToFatt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this Software (Switchboard) and associated documentation files (the &quot;Software&quot;), to deal
+in the Software (Switchboard) without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software (Switchboard).
+
+THE SOFTWARE (Switchboard) IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE (Switchboard) OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."
+
+                     HorizontalAlignment="Left" 
+                     Margin="0" 
+                     Height="150" 
+                     Width="525" 
+                     TextWrapping="Wrap"
+                     IsReadOnly="True"
+                     VerticalScrollBarVisibility="Auto"/>
+        </StackPanel>
+        <Border Width="208" Height="124" Margin="200,-250,0,0" BorderThickness="1">
+                                <Image Source=".\resources\logo.png" Stretch="Uniform"/>
+                            </Border>
+            <StackPanel Orientation="Vertical" FlowDirection="LeftToRight" Width="0" HorizontalAlignment="Left" Margin="0,0,0,0">
+                <!--
+                    <Controls:MetroProgressBar  IsIndeterminate="True" Width="200"/>    
+                -->
+            </StackPanel>
+
+    </Grid>
+</TabItem>
+            </TabControl>
+        </StackPanel>
+
+
+       <!-- <Button x:Name="ChangeSettings" Width="50" HorizontalAlignment="Right" VerticalAlignment="Bottom"  Background="Transparent" Height="50" Margin="10,0,10,0" Style="{DynamicResource MetroCircleButtonStyle}" >
+            <Rectangle Width="25" Height="25" Margin="0,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="CornFlowerBlue">
+                <Rectangle.OpacityMask>
+                    <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_magnify_forward}"/>
+                </Rectangle.OpacityMask>
+            </Rectangle>
+        </Button>
+
+        -->
+<!--
+         <TextBox x:Name="TerminalOutput" 
+                 HorizontalAlignment="Left" 
+                 VerticalAlignment="Bottom"
+                 Margin="10"
+                 Height="100"
+                 Width = "300"
+                 TextWrapping="Wrap"
+                 IsReadOnly="True"
+                 VerticalScrollBarVisibility="Auto"/>
+-->
+
+
+
+<!-- THIS IS FOR THE CHART IMAGE
+<Grid  Margin="210,-120,0,0">
+  <Border Width="270" Height="170" Margin="10" BorderThickness="1">
+ 
+        
+        <Image Source=".\resources\logo.png" Stretch="Uniform"/>
+    </Border>
+    </Grid>
+    
+-->
+
+
+    </Grid>
+</Controls:MetroWindow>        
