@@ -1,5 +1,5 @@
 # Switchboard: A Benchmark Tool
- Powershell program that tests specified storage device, formats said storage device, and exports test data to CSV, Excel charts, and [soon] organizes photos in a .docx file.
+ Powershell program that tests specified storage device, formats said storage device, and exports test data to CSV, Excel charts, and organizes photos in a .docx file.
  
 ## How it works
  This program initially asks for the drive letter and the name you wish to set the drive to. It will then run preset testing (currently 1MB read/write for 3 seconds each) - custom testing functionality will be added at a later date. After this, the target drive is formatted. 
