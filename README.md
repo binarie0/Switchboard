@@ -18,7 +18,7 @@
  https://github.com/MahApps/MahApps.Metro [Used as the basis for our UI]
 
  binarie0 -> Majority of code compilation, graphics, output to .xlsx and .csv      
- EarthToFatt -> Initial conceptualization, code restructuring, graphics, graph (chart) output, .docx output (pending)      
+ EarthToFatt -> Initial conceptualization, code restructuring, graphics, graph (chart) output, .docx output     
 
 
 #### NOTE:
@@ -34,3 +34,4 @@ This program currently requires its sister program, IFI Enabler, to function at 
     26 Feb 2024 - Change name of DriveTestUltra to Switchboard, change PsWriteWord.psm1 such that chartX and chartY have default values   
     28 Feb 2024 - Added Output to Word, resolved conflicts with drive letters, added custom image support to PSWriteOffice.psm1 and PSWriteOffice.psd1. Also added Unblock-File for PSWriteOffice
     23 Jul 2024 - Update to build 1.0 (MORE INFO TO BE ADDED TO THIS ENTRY)
+    08 Dec 2024 - Forgot to update READMEs, woopsies.
